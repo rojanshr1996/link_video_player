@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: GestureDetector(
                 onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
                 child: TextFormField(
-                  maxLines: 4,
+                  maxLines: 3,
                   controller: _urlController,
                   autofocus: false,
                   autocorrect: false,
@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   } else {
                     FocusScope.of(context).requestFocus(FocusNode());
-                    Utilities.fadeOpenActivity(context, TestVideoScreen(videoUrl: "${_urlController.text.trim()}"));
+                    Utilities.openActivity(context, TestVideoScreen(videoUrl: "${_urlController.text.trim()}"));
                   }
                 },
                 child: Text("Open"),

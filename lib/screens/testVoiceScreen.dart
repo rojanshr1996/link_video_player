@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:chewie/chewie.dart';
+import 'package:link_video_player/screens/command.dart';
+import 'package:link_video_player/screens/speech_api.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:picovoice/picovoice_error.dart';
 import 'package:porcupine/porcupine_manager.dart';
@@ -33,6 +36,8 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
   bool _listeningForCommand = false;
 
   ScrollController _sc = ScrollController();
+
+  bool isListening = false;
 
   @override
   void initState() {
@@ -84,6 +89,9 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
       _porcupineManager = null;
     } else if (state == AppLifecycleState.resumed) {
       print("THIS IS THE RESUMED STATE: $state");
+      createPorcupineManager();
+    } else if (state == AppLifecycleState.paused) {
+      print("THIS IS THE PAUSED STATE: $state");
       createPorcupineManager();
     }
   }
@@ -152,15 +160,8 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Text(
-                    text == "Take Screenshot" ? "$text (${imageFile.length})".toUpperCase() : "$text".toUpperCase(),
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: text == "start"
-                            ? Colors.green
-                            : text == "stop"
-                                ? Colors.red
-                                : Colors.orange),
+                    "$text",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange),
                   ),
                 ),
               )
@@ -168,14 +169,15 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: FloatingActionButton(
-          key: UniqueKey(),
-          heroTag: "F1",
-          onPressed: () async {
-            _listeningForCommand ? createPorcupineManager() : await _porcupineManager?.stop();
-          },
-          tooltip: 'Mic',
-          child: Icon(!_listeningForCommand ? Icons.play_arrow : Icons.stop),
+        floatingActionButton: AvatarGlow(
+          animate: isListening,
+          endRadius: 75,
+          glowColor: Theme.of(context).primaryColor,
+          child: FloatingActionButton(
+            onPressed: toggleRecording,
+            tooltip: 'Mic',
+            child: Icon(isListening ? Icons.mic : Icons.mic_none),
+          ),
         ),
       ),
     );
@@ -188,7 +190,7 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
   void createPorcupineManager() async {
     try {
       _porcupineManager = await PorcupineManager.fromKeywords(
-        ["computer", "picovoice", "alexa"],
+        ["jarvis", "picovoice", "alexa"],
         _wakeWordCallback,
       );
 
@@ -201,49 +203,92 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
 
   Future<void> _wakeWordCallback(int keywordIndex) async {
     if (keywordIndex == 0) {
-      print("computer");
-      setState(() {
-        text = "start";
-        _listeningForCommand = true;
-      });
-      _chewieController.play();
+      print("jarvis");
+      _stopProcessing();
+
+      toggleRecording();
+
+      // _chewieController.play();
     } else if (keywordIndex == 1) {
-      print("picovoice");
-
-      _chewieController.pause();
-      setState(() {
-        text = "stop";
-        _listeningForCommand = false;
-      });
     } else if (keywordIndex == 2) {
-      print("alexa");
-      _chewieController.pause();
-      await screenshotController.capture(delay: const Duration(milliseconds: 10)).then((Uint8List? image) async {
-        if (image != null) {
-          if (Platform.isAndroid) {
-            final directory = await getExternalStorageDirectory();
-            print("This is the directory path: ${directory?.path}");
-            imagePath = await File('${directory?.path}/${DateTime.now()}.png').create();
-            await imagePath.writeAsBytes(image);
+      // print("alexa");
+      // _chewieController.pause();
+      // await screenshotController.capture(delay: const Duration(milliseconds: 10)).then((Uint8List? image) async {
+      //   if (image != null) {
+      //     if (Platform.isAndroid) {
+      //       final directory = await getExternalStorageDirectory();
+      //       print("This is the directory path: ${directory?.path}");
+      //       imagePath = await File('${directory?.path}/${DateTime.now()}.png').create();
+      //       await imagePath.writeAsBytes(image);
 
-            if (imageFile.length == 0) {
-              imageFile.add(imagePath.path);
-            } else {
-              if (imageFile.every((element) => element != imagePath.path)) {
-                imageFile.add(imagePath.path);
-              }
-            }
-            setState(() {});
-          }
+      //       if (imageFile.length == 0) {
+      //         imageFile.add(imagePath.path);
+      //       } else {
+      //         if (imageFile.every((element) => element != imagePath.path)) {
+      //           imageFile.add(imagePath.path);
+      //         }
+      //       }
+      //       setState(() {});
+      //     }
 
-          /// Share Plugin
-          // await Share.shareFiles([imagePath.path]);
-        }
-        setState(() {
-          text = "Take Screenshot";
-          _listeningForCommand = false;
-        });
-      });
+      //     /// Share Plugin
+      //     // await Share.shareFiles([imagePath.path]);
+      //   }
+      //   setState(() {
+      //     text = "Take Screenshot";
+      //     _listeningForCommand = false;
+      //   });
+      // });
     }
   }
+
+  Future toggleRecording() => SpeechApi.toggleRecording(
+      onResult: (text) => setState(() => this.text = text),
+      onListening: (isListening) async {
+        setState(() => this.isListening = isListening);
+        print(isListening);
+        if (!isListening) {
+          Future.delayed(Duration(seconds: 1), () async {
+            Utils.scanText(text);
+
+            if (Utils.scanText(text) == "start") {
+              print(Utils.scanText(text));
+
+              _chewieController.play();
+            } else if (Utils.scanText(text) == "stop") {
+              print(Utils.scanText(text));
+
+              _chewieController.pause();
+            } else if (Utils.scanText(text) == "take screenshot") {
+              _chewieController.pause();
+
+              await screenshotController
+                  .capture(delay: const Duration(milliseconds: 10))
+                  .then((Uint8List? image) async {
+                if (image != null) {
+                  if (Platform.isAndroid) {
+                    final directory = await getExternalStorageDirectory();
+                    print("This is the directory path: ${directory?.path}");
+                    imagePath = await File('${directory?.path}/${DateTime.now()}.png').create();
+                    await imagePath.writeAsBytes(image);
+
+                    if (imageFile.length == 0) {
+                      imageFile.add(imagePath.path);
+                    } else {
+                      if (imageFile.every((element) => element != imagePath.path)) {
+                        imageFile.add(imagePath.path);
+                      }
+                    }
+                    setState(() {});
+                  }
+
+                  /// Share Plugin
+                  // await Share.shareFiles([imagePath.path]);
+                }
+              });
+            }
+          });
+        }
+        createPorcupineManager();
+      });
 }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:link_video_player/screens/homeScreen.dart';
-import 'package:link_video_player/screens/testVoiceScreen.dart';
 
-void main() {
+void main() async {
   runApp(MyApp());
 }
 

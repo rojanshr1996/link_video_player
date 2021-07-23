@@ -79,18 +79,18 @@ class Utilities {
     );
   }
 
-  static Future<dynamic> fadeOpenActivity(context, object) async {
-    return await Navigator.of(context).push(
-      new PageRouteBuilder(
-        pageBuilder: (BuildContext context, _, __) {
-          return object;
-        },
-        transitionsBuilder: (_, Animation<double> animation, __, Widget child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
-  }
+  // static Future<dynamic> fadeOpenActivity(context, object) async {
+  //   return await Navigator.of(context).push(
+  //     new PageRouteBuilder(
+  //       pageBuilder: (BuildContext context, _, __) {
+  //         return object;
+  //       },
+  //       transitionsBuilder: (_, Animation<double> animation, __, Widget child) {
+  //         return FadeTransition(opacity: animation, child: child);
+  //       },
+  //     ),
+  //   );
+  // }
 
   static Future<Null> fadeReplaceActivity(context, object) async {
     return await Navigator.of(context).pushReplacement(
