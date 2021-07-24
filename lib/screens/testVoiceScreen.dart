@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:avatar_glow/avatar_glow.dart';
@@ -10,6 +11,7 @@ import 'package:picovoice/picovoice_error.dart';
 import 'package:porcupine/porcupine_manager.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class TestVideoScreen extends StatefulWidget {
   final String videoUrl;
@@ -29,7 +31,8 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
   String text = "";
 
   File imagePath = File("");
-  List<String> imageFile = [];
+  List<Uint8List?> imageFile = [];
+  // List<String> imageFile = [];
   ScreenshotController screenshotController = ScreenshotController();
 
   PorcupineManager? _porcupineManager;
@@ -38,11 +41,12 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
   ScrollController _sc = ScrollController();
 
   bool isListening = false;
-
+  Uint8List? bytes;
   @override
   void initState() {
     super.initState();
     createPorcupineManager();
+    print(widget.videoUrl);
     videoPlayerController = VideoPlayerController.network('${widget.videoUrl}')
       ..initialize().then((_) {
         // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
@@ -146,11 +150,7 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
                                 decoration: BoxDecoration(
                                   border: Border.all(color: Colors.red),
                                 ),
-                                child: File(imageFile[index]).existsSync()
-                                    ? Image.file(
-                                        File(imageFile[index]),
-                                      )
-                                    : Container(),
+                                child: imageFile[index] == null ? Container() : Image.memory(imageFile[index]!),
                               ),
                             );
                           }),
@@ -174,7 +174,8 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
           endRadius: 75,
           glowColor: Theme.of(context).primaryColor,
           child: FloatingActionButton(
-            onPressed: toggleRecording,
+            // onPressed: toggleRecording,
+            onPressed: () async {},
             tooltip: 'Mic',
             child: Icon(isListening ? Icons.mic : Icons.mic_none),
           ),
@@ -205,90 +206,61 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
     if (keywordIndex == 0) {
       print("jarvis");
       _stopProcessing();
-
+      text = "";
       toggleRecording();
-
-      // _chewieController.play();
-    } else if (keywordIndex == 1) {
-    } else if (keywordIndex == 2) {
-      // print("alexa");
-      // _chewieController.pause();
-      // await screenshotController.capture(delay: const Duration(milliseconds: 10)).then((Uint8List? image) async {
-      //   if (image != null) {
-      //     if (Platform.isAndroid) {
-      //       final directory = await getExternalStorageDirectory();
-      //       print("This is the directory path: ${directory?.path}");
-      //       imagePath = await File('${directory?.path}/${DateTime.now()}.png').create();
-      //       await imagePath.writeAsBytes(image);
-
-      //       if (imageFile.length == 0) {
-      //         imageFile.add(imagePath.path);
-      //       } else {
-      //         if (imageFile.every((element) => element != imagePath.path)) {
-      //           imageFile.add(imagePath.path);
-      //         }
-      //       }
-      //       setState(() {});
-      //     }
-
-      //     /// Share Plugin
-      //     // await Share.shareFiles([imagePath.path]);
-      //   }
-      //   setState(() {
-      //     text = "Take Screenshot";
-      //     _listeningForCommand = false;
-      //   });
-      // });
     }
   }
 
   Future toggleRecording() => SpeechApi.toggleRecording(
-      onResult: (text) => setState(() => this.text = text),
-      onListening: (isListening) async {
-        setState(() => this.isListening = isListening);
-        print(isListening);
-        if (!isListening) {
-          Future.delayed(Duration(seconds: 1), () async {
-            Utils.scanText(text);
+          onResult: (text) => setState(() => this.text = text),
+          onListening: (isListening) async {
+            setState(() => this.isListening = isListening);
+            print("Print: $isListening");
+            if (!isListening) {
+              Future.delayed(Duration(milliseconds: 500), () async {
+                Utils.scanText(text);
 
-            if (Utils.scanText(text) == "start") {
-              print(Utils.scanText(text));
+                if (Utils.scanText(text) == "start") {
+                  print(Utils.scanText(text));
+                  _chewieController.play();
+                  SpeechApi.stopListening();
+                } else if (Utils.scanText(text) == "stop") {
+                  print(Utils.scanText(text));
 
-              _chewieController.play();
-            } else if (Utils.scanText(text) == "stop") {
-              print(Utils.scanText(text));
+                  _chewieController.pause();
+                  SpeechApi.stopListening();
+                } else if (Utils.scanText(text) == "screenshot") {
+                  _chewieController.pause();
+                  SpeechApi.stopListening();
 
-              _chewieController.pause();
-            } else if (Utils.scanText(text) == "take screenshot") {
-              _chewieController.pause();
-
-              await screenshotController
-                  .capture(delay: const Duration(milliseconds: 10))
-                  .then((Uint8List? image) async {
-                if (image != null) {
                   if (Platform.isAndroid) {
-                    final directory = await getExternalStorageDirectory();
-                    print("This is the directory path: ${directory?.path}");
-                    imagePath = await File('${directory?.path}/${DateTime.now()}.png').create();
-                    await imagePath.writeAsBytes(image);
+                    bytes = await VideoThumbnail.thumbnailData(
+                      video: "${widget.videoUrl}", // Path of that video
+                      imageFormat: ImageFormat.PNG,
+                      quality: 100,
+                      timeMs: videoPlayerController.value.position.inMilliseconds,
+                    );
 
-                    if (imageFile.length == 0) {
-                      imageFile.add(imagePath.path);
-                    } else {
-                      if (imageFile.every((element) => element != imagePath.path)) {
-                        imageFile.add(imagePath.path);
+                    print(bytes);
+
+                    if (bytes != null) {
+                      if (imageFile.length == 0) {
+                        imageFile.add(bytes);
+                      } else {
+                        if (imageFile.every((element) => element != bytes)) {
+                          imageFile.add(bytes);
+                        }
                       }
+                      print(imageFile.length);
+                      setState(() {});
                     }
-                    setState(() {});
+                    _chewieController.play();
                   }
-
-                  /// Share Plugin
-                  // await Share.shareFiles([imagePath.path]);
                 }
               });
             }
-          });
-        }
-        createPorcupineManager();
+            createPorcupineManager();
+          }).then((data) {
+        print("This is the data: $data");
       });
 }

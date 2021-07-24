@@ -3,7 +3,7 @@ class Command {
 
   static const start = "start";
   static const stop = "stop";
-  static const takeScreenshot = "take screenshot";
+  static const takeScreenshot = "screenshot";
 }
 
 class Utils {

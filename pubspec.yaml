@@ -34,9 +34,9 @@ dependencies:
   share: ^2.0.4
   picovoice: ^1.1.8
   porcupine: ^1.9.13
-  # camera: ^0.8.1+5
   speech_to_text: ^4.2.2
   avatar_glow: ^2.0.1
+  video_thumbnail: ^0.3.3
 
 dev_dependencies:
   flutter_test:

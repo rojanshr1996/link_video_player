@@ -14,19 +14,27 @@ class SpeechApi {
     }
     final isAvailable = await _speech.initialize(
       onStatus: (status) => onListening(_speech.isListening),
-      onError: (e) => print("Error: $e"),
+      onError: (e) {
+        print("Error: $e");
+      },
       debugLogging: true,
     );
 
     if (isAvailable) {
       _speech.listen(
         onResult: (value) => onResult(value.recognizedWords),
-        listenFor: Duration(seconds: 6),
-        pauseFor: Duration(seconds: 5),
+        listenFor: Duration(seconds: 4),
+        pauseFor: Duration(seconds: 4),
         // listenMode: ListenMode.confirmation,
       );
+    } else {
+      print("NOT AVAILABLE");
     }
 
     return isAvailable;
+  }
+
+  static stopListening() {
+    _speech.stop();
   }
 }
