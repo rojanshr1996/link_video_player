@@ -23,8 +23,9 @@ class SpeechApi {
     if (isAvailable) {
       _speech.listen(
         onResult: (value) => onResult(value.recognizedWords),
-        listenFor: Duration(seconds: 4),
-        pauseFor: Duration(seconds: 4),
+        listenFor: Duration(seconds: 5),
+        pauseFor: Duration(seconds: 3),
+        onDevice: false,
         // listenMode: ListenMode.confirmation,
       );
     } else {

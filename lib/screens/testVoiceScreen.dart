@@ -217,7 +217,7 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
             setState(() => this.isListening = isListening);
             print("Print: $isListening");
             if (!isListening) {
-              Future.delayed(Duration(milliseconds: 500), () async {
+              Future.delayed(Duration(milliseconds: 200), () async {
                 Utils.scanText(text);
 
                 if (Utils.scanText(text) == "start") {
@@ -241,7 +241,7 @@ class _TestVideoScreenState extends State<TestVideoScreen> with WidgetsBindingOb
                       timeMs: videoPlayerController.value.position.inMilliseconds,
                     );
 
-                    print(bytes);
+                    // print(bytes);
 
                     if (bytes != null) {
                       if (imageFile.length == 0) {
